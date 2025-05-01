@@ -141,9 +141,9 @@ const UsersAdd = () => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Activity Log</Text>
+          <Text style={styles.headerTitle}>User Account</Text>
         </View>
-        <Text style={styles.subHeader}>Door Access History</Text>
+        <Text style={styles.subHeader}>User Account History</Text>
         <FlatList
           data={users}
           renderItem={renderItem}

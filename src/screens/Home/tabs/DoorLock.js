@@ -12,10 +12,12 @@ import { ref, set, push, get } from "firebase/database"; // Import Firebase data
 import database from "../../../../firebaseConfig"; // Ensure the database is imported correctly
 import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
 import * as LocalAuthentication from "expo-local-authentication"; // Import Expo Local Authentication
+import * as Linking from "expo-linking"; // Import Linking from Expo
 
 const DoorLock = () => {
   const [lockStatus, setLockStatus] = useState("Locked"); // State to track lock status
   const [user, setUser] = useState(null); // State to store user details
+  const [camIP, setCamIP] = useState(null); // State to store camera IP
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -51,7 +53,22 @@ const DoorLock = () => {
       }
     };
 
+    const fetchCamIP = async () => {
+      try {
+        const camIPRef = ref(database, "CamIP"); // Reference to CamIP in Firebase
+        const snapshot = await get(camIPRef);
+        if (snapshot.exists()) {
+          setCamIP(snapshot.val()); // Set the camera IP
+        } else {
+          console.error("CamIP not found in the database.");
+        }
+      } catch (error) {
+        console.error("Error fetching CamIP:", error);
+      }
+    };
+
     fetchUserDetails();
+    fetchCamIP();
   }, []);
 
   const authenticateFingerprint = async () => {
@@ -165,6 +182,14 @@ const DoorLock = () => {
     }
   };
 
+  const handleCameraView = () => {
+    if (camIP) {
+      Linking.openURL(`http://${camIP}`); // Open the camera IP in the browser
+    } else {
+      Alert.alert("Error", "Camera IP not available.");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.content}>
@@ -198,9 +223,7 @@ const DoorLock = () => {
         </View>
         <TouchableOpacity
           style={styles.cameraButton}
-          onPress={() =>
-            Alert.alert("Camera View", "Camera view functionality coming soon!")
-          }
+          onPress={handleCameraView}
         >
           <Text style={styles.cameraButtonText}>Camera View</Text>
         </TouchableOpacity>

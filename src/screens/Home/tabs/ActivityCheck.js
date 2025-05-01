@@ -98,7 +98,7 @@ const ActivityCheck = () => {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Activity Log</Text>
+            <Text style={styles.headerTitle}>User Logs</Text>
           </View>
           <Text style={styles.subHeader}>Door Access History</Text>
           <View style={styles.noDataContainer}>
