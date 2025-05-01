@@ -14,18 +14,17 @@
     "@react-navigation/native": "^7.1.6",
     "@react-navigation/stack": "^7.2.10",
     "expo": "~53.0.4",
+    "expo-local-authentication": "~16.0.4",
     "expo-status-bar": "~2.2.3",
     "firebase": "^11.6.1",
     "react": "19.0.0",
     "react-native": "0.79.1",
     "react-native-elements": "^3.4.3",
-    "react-native-fingerprint-scanner": "^6.0.0",
     "react-native-gesture-handler": "^2.25.0",
     "react-native-reanimated": "^3.17.5",
     "react-native-safe-area-context": "^5.4.0",
     "react-native-screens": "^4.10.0",
-    "react-native-vector-icons": "^10.2.0",
-    "expo-local-authentication": "~16.0.4"
+    "react-native-vector-icons": "^10.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
