@@ -10,46 +10,39 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import database from "../../../../firebaseConfig"; // Import Firebase database instance
-import { ref, get } from "firebase/database"; // Import Firebase database functions
+import { ref, onValue } from "firebase/database"; // Replace get with onValue
 
 const ActivityCheck = () => {
   const [activityData, setActivityData] = useState([]); // State to store activity data
   const [loading, setLoading] = useState(true); // State to manage loading state
 
   useEffect(() => {
-    const fetchActivityData = async () => {
-      try {
-        const activityRef = ref(database, "activity"); // Reference to the activity node
-        const snapshot = await get(activityRef);
+    const activityRef = ref(database, "activity"); // Reference to the activity node
+    const unsubscribe = onValue(activityRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const activities = [];
+        const activityUsers = snapshot.val();
 
-        if (snapshot.exists()) {
-          const activities = [];
-          const activityUsers = snapshot.val();
-
-          // Iterate through user IDs and their activities
-          Object.keys(activityUsers).forEach((userId) => {
-            const userActivities = activityUsers[userId];
-            Object.keys(userActivities).forEach((activityId) => {
-              activities.push({
-                id: activityId,
-                userId,
-                ...userActivities[activityId], // Spread activity details
-              });
+        // Iterate through user IDs and their activities
+        Object.keys(activityUsers).forEach((userId) => {
+          const userActivities = activityUsers[userId];
+          Object.keys(userActivities).forEach((activityId) => {
+            activities.push({
+              id: activityId,
+              userId,
+              ...userActivities[activityId], // Spread activity details
             });
           });
+        });
 
-          setActivityData(activities); // Set the fetched activity data
-        } else {
-          console.error("No activity data found in the database.");
-        }
-      } catch (error) {
-        console.error("Error fetching activity data:", error);
-      } finally {
-        setLoading(false); // Stop loading
+        setActivityData(activities); // Set the fetched activity data
+      } else {
+        setActivityData([]); // Clear data if no activity exists
       }
-    };
+      setLoading(false); // Stop loading
+    });
 
-    fetchActivityData();
+    return () => unsubscribe(); // Cleanup listener on unmount
   }, []);
 
   const renderItem = ({ item }) => (
@@ -94,6 +87,22 @@ const ActivityCheck = () => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <ActivityIndicator size="large" color="#3b82f6" />
+      </SafeAreaView>
+    );
+  }
+
+  if (activityData.length === 0) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Activity Log</Text>
+          </View>
+          <Text style={styles.subHeader}>Door Access History</Text>
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>No activity data found.</Text>
+          </View>
+        </View>
       </SafeAreaView>
     );
   }
@@ -209,6 +218,15 @@ const styles = StyleSheet.create({
   },
   action: {
     fontSize: 14,
+    color: "#6b7280",
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDataText: {
+    fontSize: 16,
     color: "#6b7280",
   },
 });

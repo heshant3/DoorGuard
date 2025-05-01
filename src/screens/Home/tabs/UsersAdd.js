@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { ref, get, update } from "firebase/database"; // Import Firebase database functions
+import { ref, onValue, update } from "firebase/database"; // Replace get with onValue
 import database from "../../../../firebaseConfig"; // Import the database instance
 import { Ionicons } from "@expo/vector-icons"; // Import Ionicons for the close icon
 
@@ -23,29 +23,22 @@ const UsersAdd = () => {
   const [loading, setLoading] = useState(true); // State to manage loading state
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const usersRef = ref(database, "users"); // Reference to the users node
-        const snapshot = await get(usersRef);
-
-        if (snapshot.exists()) {
-          const usersData = snapshot.val();
-          const usersList = Object.keys(usersData).map((userId) => ({
-            id: userId,
-            ...usersData[userId], // Spread user details
-          }));
-          setUsers(usersList); // Set the fetched users
-        } else {
-          console.error("No users found in the database.");
-        }
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      } finally {
-        setLoading(false); // Stop loading
+    const usersRef = ref(database, "users"); // Reference to the users node
+    const unsubscribe = onValue(usersRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const usersData = snapshot.val();
+        const usersList = Object.keys(usersData).map((userId) => ({
+          id: userId,
+          ...usersData[userId], // Spread user details
+        }));
+        setUsers(usersList); // Set the fetched users
+      } else {
+        setUsers([]); // Clear data if no users exist
       }
-    };
+      setLoading(false); // Stop loading
+    });
 
-    fetchUsers();
+    return () => unsubscribe(); // Cleanup listener on unmount
   }, []);
 
   const handleOpenModal = (user) => {
@@ -122,6 +115,22 @@ const UsersAdd = () => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <ActivityIndicator size="large" color="#3b82f6" />
+      </SafeAreaView>
+    );
+  }
+
+  if (users.length === 0) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Users Data</Text>
+          </View>
+          <Text style={styles.subHeader}>User Account History</Text>
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>No users found.</Text>
+          </View>
+        </View>
       </SafeAreaView>
     );
   }
@@ -320,6 +329,15 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noDataText: {
+    fontSize: 16,
+    color: "#6b7280",
   },
 });
 
