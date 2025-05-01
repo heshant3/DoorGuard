@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "space-between", // Ensure content and logout button are spaced
     paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 60,
   },
   content: {
     flex: 1, // Allow content to take up remaining space
