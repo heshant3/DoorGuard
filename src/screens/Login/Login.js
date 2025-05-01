@@ -34,9 +34,16 @@ const Login = ({ navigation }) => {
           );
 
           if (userEntry) {
-            const [userId] = userEntry; // Extract user ID
-            await AsyncStorage.setItem("loggedInUserId", userId); // Save user ID
-            navigation.navigate("UserHome"); // Navigate to UserHome on success
+            const [userId, userData] = userEntry; // Extract user ID and data
+            if (userData.status === 1) {
+              await AsyncStorage.setItem("loggedInUserId", userId); // Save user ID
+              navigation.navigate("UserHome"); // Navigate to UserHome on success
+            } else {
+              Alert.alert(
+                "Account Not Approved",
+                "Your account is either pending approval or has been declined by the administrator. Please contact them for further assistance."
+              );
+            }
           } else {
             Alert.alert(
               "Invalid Credentials",

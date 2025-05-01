@@ -44,6 +44,7 @@ const SignUp = ({ navigation }) => {
           name, // Save name
           email,
           password,
+          status: 2, // Add status field with default value 0
           createdAt: timestamp, // Save signup time
         })
           .then(() => {

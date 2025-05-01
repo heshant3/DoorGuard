@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  Linking,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { ref, set, push, get } from "firebase/database"; // Import Firebase database functions
@@ -16,7 +15,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage"; // Import 
 const DoorLock = () => {
   const [lockStatus, setLockStatus] = useState("Locked"); // State to track lock status
   const [user, setUser] = useState(null); // State to store user details
-  const [camIP, setCamIP] = useState(""); // State to store camera IP
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -46,18 +44,9 @@ const DoorLock = () => {
         } else {
           Alert.alert("Error", "User ID not found in local storage.");
         }
-
-        // Fetch CamIP from the database
-        const camIPRef = ref(database, "CamIP");
-        const camIPSnapshot = await get(camIPRef);
-        if (camIPSnapshot.exists()) {
-          setCamIP(camIPSnapshot.val()); // Set the CamIP state
-        } else {
-          Alert.alert("Error", "Camera IP not found in the database.");
-        }
       } catch (error) {
-        console.error("Error fetching data:", error);
-        Alert.alert("Error", "An error occurred while fetching data.");
+        console.error("Error fetching user details:", error);
+        Alert.alert("Error", "An error occurred while fetching user details.");
       }
     };
 
@@ -96,7 +85,7 @@ const DoorLock = () => {
       set(ref(database, "/Lock"), 0) // Update lock status in the database
         .then(() => {
           setLockStatus("Locked");
-          Alert.alert("Success", "Door is now locked.");
+
           logActivity("Locked"); // Log lock activity
         })
         .catch((error) => {
@@ -113,7 +102,7 @@ const DoorLock = () => {
       set(ref(database, "/Lock"), 1) // Update lock status in the database
         .then(() => {
           setLockStatus("Unlocked");
-          Alert.alert("Success", "Door is now unlocked.");
+
           logActivity("Unlocked"); // Log unlock activity
         })
         .catch((error) => {
@@ -125,23 +114,17 @@ const DoorLock = () => {
     }
   };
 
-  const handleCameraView = () => {
-    if (camIP) {
-      Linking.openURL(`http://${camIP}`).catch((err) =>
-        Alert.alert("Error", "Failed to open the camera view.")
-      );
-    } else {
-      Alert.alert("Error", "Camera IP is not available.");
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.content}>
         <View style={styles.iconWrapper}>
           <View style={styles.outerCircle}>
             <View style={styles.iconBackground}>
-              <Ionicons name="lock-closed-outline" size={60} color="#2563eb" />
+              <Ionicons
+                name={lockStatus === "Locked" ? "lock-closed" : "lock-open"} // Change icon dynamically
+                size={60}
+                color="#2563eb" // Keep the color consistent
+              />
             </View>
           </View>
         </View>
@@ -151,21 +134,22 @@ const DoorLock = () => {
             style={[styles.button, styles.lockButton]}
             onPress={handleLock}
           >
-            <Ionicons name="lock-closed-outline" size={20} color="#fff" />
+            <Ionicons name="lock-closed" size={20} color="#fff" />
             <Text style={styles.buttonText}>Lock Door</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.button, styles.unlockButton]}
             onPress={handleUnlock}
           >
-            <Ionicons name="lock-open-outline" size={20} color="#fff" />
+            <Ionicons name="lock-open" size={20} color="#fff" />
             <Text style={styles.buttonText}>Unlock Door</Text>
           </TouchableOpacity>
         </View>
-
         <TouchableOpacity
           style={styles.cameraButton}
-          onPress={handleCameraView}
+          onPress={() =>
+            Alert.alert("Camera View", "Camera view functionality coming soon!")
+          }
         >
           <Text style={styles.cameraButtonText}>Camera View</Text>
         </TouchableOpacity>

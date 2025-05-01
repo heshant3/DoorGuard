@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
   View,
@@ -8,51 +8,45 @@ import {
   TouchableOpacity,
   Modal,
   Animated,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
+import { ref, get, update } from "firebase/database"; // Import Firebase database functions
+import database from "../../../../firebaseConfig"; // Import the database instance
+import { Ionicons } from "@expo/vector-icons"; // Import Ionicons for the close icon
 
 const UsersAdd = () => {
+  const [users, setUsers] = useState([]); // State to store users
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalVisible, setModalVisible] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0)); // Initialize fade animation
+  const [loading, setLoading] = useState(true); // State to manage loading state
 
-  const users = [
-    {
-      id: "1",
-      name: "John Anderson",
-      userId: "USER28491",
-      email: "john@example.com",
-    },
-    {
-      id: "2",
-      name: "Sarah Miller",
-      userId: "USER28492",
-      email: "sarah@example.com",
-    },
-    {
-      id: "3",
-      name: "Michael Chen",
-      userId: "USER28493",
-      email: "michael@example.com",
-    },
-    {
-      id: "4",
-      name: "Emily Johnson",
-      userId: "USER28494",
-      email: "emily@example.com",
-    },
-    {
-      id: "5",
-      name: "David Wilson",
-      userId: "USER28495",
-      email: "david@example.com",
-    },
-    {
-      id: "6",
-      name: "Lisa Brown",
-      userId: "USER28496",
-      email: "lisa@example.com",
-    },
-  ];
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const usersRef = ref(database, "users"); // Reference to the users node
+        const snapshot = await get(usersRef);
+
+        if (snapshot.exists()) {
+          const usersData = snapshot.val();
+          const usersList = Object.keys(usersData).map((userId) => ({
+            id: userId,
+            ...usersData[userId], // Spread user details
+          }));
+          setUsers(usersList); // Set the fetched users
+        } else {
+          console.error("No users found in the database.");
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false); // Stop loading
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const handleOpenModal = (user) => {
     setSelectedUser(user);
@@ -75,6 +69,24 @@ const UsersAdd = () => {
     });
   };
 
+  const handleStatusChange = (userId, status) => {
+    const userRef = ref(database, `users/${userId}`); // Reference to the specific user
+    update(userRef, { status }) // Update the status field
+      .then(() => {
+        setUsers((prevUsers) =>
+          prevUsers.map((user) =>
+            user.id === userId ? { ...user, status } : user
+          )
+        ); // Update the local state to reflect the new status
+
+        handleCloseModal(); // Close the modal after updating
+      })
+      .catch((error) => {
+        console.error("Error updating user status:", error);
+        Alert.alert("Error", "Failed to update user status.");
+      });
+  };
+
   const renderItem = ({ item }) => (
     <View style={styles.userItem}>
       <View style={styles.avatar}>
@@ -87,7 +99,15 @@ const UsersAdd = () => {
       </View>
       <View style={styles.userDetails}>
         <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.userId}>#{item.userId}</Text>
+        <Text style={styles.userId}>#{item.id}</Text>
+        <Text style={styles.status}>
+          Status:{" "}
+          {item.status === 1
+            ? "Accepted"
+            : item.status === 0
+            ? "Declined"
+            : "Pending"}
+        </Text>
       </View>
       <TouchableOpacity
         style={styles.viewMoreButton}
@@ -98,12 +118,21 @@ const UsersAdd = () => {
     </View>
   );
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>User Add</Text>
+          <Text style={styles.headerTitle}>Activity Log</Text>
         </View>
+        <Text style={styles.subHeader}>Door Access History</Text>
         <FlatList
           data={users}
           renderItem={renderItem}
@@ -121,20 +150,29 @@ const UsersAdd = () => {
               <Animated.View
                 style={[styles.modalContent, { opacity: fadeAnim }]}
               >
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={handleCloseModal}
+                >
+                  <Ionicons name="close" size={24} color="#1f2937" />
+                </TouchableOpacity>
                 <Text style={styles.detailText}>Name: {selectedUser.name}</Text>
                 <Text style={styles.detailText}>
-                  User ID: {selectedUser.userId}
+                  User ID: {selectedUser.id}
                 </Text>
                 <Text style={styles.detailText}>
                   Email: {selectedUser.email}
                 </Text>
                 <View style={styles.buttonContainer}>
-                  <TouchableOpacity style={styles.acceptButton}>
+                  <TouchableOpacity
+                    style={styles.acceptButton}
+                    onPress={() => handleStatusChange(selectedUser.id, 1)} // Accept action
+                  >
                     <Text style={styles.buttonText}>Accept</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.declineButton}
-                    onPress={handleCloseModal}
+                    onPress={() => handleStatusChange(selectedUser.id, 0)} // Decline action
                   >
                     <Text style={styles.buttonText}>Decline</Text>
                   </TouchableOpacity>
@@ -169,6 +207,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#1f2937",
+  },
+  subHeader: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginBottom: 20,
   },
   listContainer: {
     paddingBottom: 20,
@@ -212,6 +255,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6b7280",
   },
+  status: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 5,
+  },
   viewMoreButton: {
     backgroundColor: "#e0f2fe",
     paddingVertical: 8,
@@ -239,6 +287,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 1,
   },
   detailText: {
     fontSize: 16,

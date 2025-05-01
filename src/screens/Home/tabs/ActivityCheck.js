@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   View,
@@ -6,47 +6,51 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import database from "../../../../firebaseConfig"; // Import Firebase database instance
+import { ref, get } from "firebase/database"; // Import Firebase database functions
 
 const ActivityCheck = () => {
-  const activityData = [
-    {
-      id: "1",
-      name: "Tony Stark",
-      userId: "USR001",
-      time: "09:41 AM",
-      date: "Today, Feb 15, 2024",
-    },
-    {
-      id: "2",
-      name: "Steve Rogers",
-      userId: "USR002",
-      time: "08:30 AM",
-      date: "Today, Feb 15, 2024",
-    },
-    {
-      id: "3",
-      name: "Bruce Banner",
-      userId: "USR003",
-      time: "07:15 AM",
-      date: "Today, Feb 15, 2024",
-    },
-    {
-      id: "4",
-      name: "Natasha Romanoff",
-      userId: "USR004",
-      time: "06:45 AM",
-      date: "Today, Feb 15, 2024",
-    },
-    {
-      id: "5",
-      name: "Peter Parker",
-      userId: "USR005",
-      time: "Yesterday",
-      date: "Feb 14, 2024",
-    },
-  ];
+  const [activityData, setActivityData] = useState([]); // State to store activity data
+  const [loading, setLoading] = useState(true); // State to manage loading state
+
+  useEffect(() => {
+    const fetchActivityData = async () => {
+      try {
+        const activityRef = ref(database, "activity"); // Reference to the activity node
+        const snapshot = await get(activityRef);
+
+        if (snapshot.exists()) {
+          const activities = [];
+          const activityUsers = snapshot.val();
+
+          // Iterate through user IDs and their activities
+          Object.keys(activityUsers).forEach((userId) => {
+            const userActivities = activityUsers[userId];
+            Object.keys(userActivities).forEach((activityId) => {
+              activities.push({
+                id: activityId,
+                userId,
+                ...userActivities[activityId], // Spread activity details
+              });
+            });
+          });
+
+          setActivityData(activities); // Set the fetched activity data
+        } else {
+          console.error("No activity data found in the database.");
+        }
+      } catch (error) {
+        console.error("Error fetching activity data:", error);
+      } finally {
+        setLoading(false); // Stop loading
+      }
+    };
+
+    fetchActivityData();
+  }, []);
 
   const renderItem = ({ item }) => (
     <View style={styles.activityItem}>
@@ -60,31 +64,45 @@ const ActivityCheck = () => {
           </Text>
         </View>
         <Ionicons
-          name="lock-closed-outline"
+          name={
+            item.action === "Unlocked"
+              ? "lock-open-outline"
+              : "lock-closed-outline"
+          }
           size={14}
-          color="#10b981"
+          color={item.action === "Unlocked" ? "#10b981" : "#ef4444"}
           style={styles.lockIcon}
         />
       </View>
       <View style={styles.activityDetails}>
         <Text style={styles.name}>{item.name}</Text>
         <Text style={styles.userId}>ID: {item.userId}</Text>
+        <Text style={styles.action}>Action: {item.action}</Text>
       </View>
       <View style={styles.activityTime}>
-        <Text style={styles.time}>{item.time}</Text>
-        <Text style={styles.date}>{item.date}</Text>
+        <Text style={styles.time}>
+          {new Date(item.timestamp).toLocaleTimeString()}
+        </Text>
+        <Text style={styles.date}>
+          {new Date(item.timestamp).toLocaleDateString()}
+        </Text>
       </View>
     </View>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Activity Log</Text>
-          <TouchableOpacity>
-            <Ionicons name="refresh-outline" size={24} color="#2563eb" />
-          </TouchableOpacity>
         </View>
         <Text style={styles.subHeader}>Door Access History</Text>
         <FlatList
@@ -187,6 +205,10 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 12,
+    color: "#6b7280",
+  },
+  action: {
+    fontSize: 14,
     color: "#6b7280",
   },
 });
