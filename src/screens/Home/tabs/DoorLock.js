@@ -11,6 +11,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { ref, set, push, get } from "firebase/database"; // Import Firebase database functions
 import database from "../../../../firebaseConfig"; // Ensure the database is imported correctly
 import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
+import * as LocalAuthentication from "expo-local-authentication"; // Import Expo Local Authentication
 
 const DoorLock = () => {
   const [lockStatus, setLockStatus] = useState("Locked"); // State to track lock status
@@ -53,6 +54,50 @@ const DoorLock = () => {
     fetchUserDetails();
   }, []);
 
+  const authenticateFingerprint = async () => {
+    try {
+      // Check if the device supports biometric authentication
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) {
+        Alert.alert(
+          "Error",
+          "Your device does not support biometric authentication."
+        );
+        return false;
+      }
+
+      // Check if biometrics are enrolled
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!isEnrolled) {
+        Alert.alert(
+          "Error",
+          "No biometric authentication methods are set up on this device."
+        );
+        return false;
+      }
+
+      // Authenticate the user
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Authenticate to proceed",
+        fallbackLabel: "Use Passcode",
+      });
+
+      if (result.success) {
+        return true; // Authentication successful
+      } else {
+        Alert.alert(
+          "Authentication Failed",
+          "Fingerprint authentication failed."
+        );
+        return false; // Authentication failed
+      }
+    } catch (error) {
+      console.error("Fingerprint Authentication Error:", error);
+      Alert.alert("Error", "An error occurred during authentication.");
+      return false;
+    }
+  };
+
   const logActivity = async (action) => {
     if (!user) {
       Alert.alert("Error", "User details not found.");
@@ -80,7 +125,10 @@ const DoorLock = () => {
     }
   };
 
-  const handleLock = () => {
+  const handleLock = async () => {
+    const isAuthenticated = await authenticateFingerprint(); // Check fingerprint
+    if (!isAuthenticated) return;
+
     try {
       set(ref(database, "/Lock"), 0) // Update lock status in the database
         .then(() => {
@@ -97,7 +145,10 @@ const DoorLock = () => {
     }
   };
 
-  const handleUnlock = () => {
+  const handleUnlock = async () => {
+    const isAuthenticated = await authenticateFingerprint(); // Check fingerprint
+    if (!isAuthenticated) return;
+
     try {
       set(ref(database, "/Lock"), 1) // Update lock status in the database
         .then(() => {
