@@ -12,11 +12,16 @@ import database from "../../../firebaseConfig"; // Import the database instance
 import { ref, set, get, child } from "firebase/database"; // Import Firebase database functions
 
 const SignUp = ({ navigation }) => {
+  const [name, setName] = useState(""); // State for name
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSignUp = () => {
+    if (!name) {
+      Alert.alert("Error", "Name cannot be empty!");
+      return;
+    }
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match!");
       return;
@@ -36,6 +41,7 @@ const SignUp = ({ navigation }) => {
         const timestamp = sriLankaTime.toISOString(); // Convert to ISO string
 
         set(ref(database, `users/${newUserId}`), {
+          name, // Save name
           email,
           password,
           createdAt: timestamp, // Save signup time
@@ -60,6 +66,12 @@ const SignUp = ({ navigation }) => {
       </View>
       <Text style={styles.title}>DoorGuard</Text>
       <Text style={styles.subtitle}>Create Your Account</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter your name"
+        value={name}
+        onChangeText={setName}
+      />
       <TextInput
         style={styles.input}
         placeholder="Enter your email"

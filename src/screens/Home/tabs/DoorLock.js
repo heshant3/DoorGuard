@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Linking,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { ref, set, push, get } from "firebase/database"; // Import Firebase database functions
@@ -15,12 +16,21 @@ import AsyncStorage from "@react-native-async-storage/async-storage"; // Import 
 const DoorLock = () => {
   const [lockStatus, setLockStatus] = useState("Locked"); // State to track lock status
   const [user, setUser] = useState(null); // State to store user details
+  const [camIP, setCamIP] = useState(""); // State to store camera IP
 
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
         const loggedInUserId = await AsyncStorage.getItem("loggedInUserId");
-        if (loggedInUserId) {
+        if (loggedInUserId === "admin") {
+          // Admin details
+          setUser({
+            name: "Admin",
+            email: "admin@admin.com",
+            userId: "Admin",
+          });
+        } else if (loggedInUserId) {
+          // Fetch user details from Firebase
           const userRef = ref(database, `users/${loggedInUserId}`);
           const snapshot = await get(userRef);
           if (snapshot.exists()) {
@@ -36,9 +46,18 @@ const DoorLock = () => {
         } else {
           Alert.alert("Error", "User ID not found in local storage.");
         }
+
+        // Fetch CamIP from the database
+        const camIPRef = ref(database, "CamIP");
+        const camIPSnapshot = await get(camIPRef);
+        if (camIPSnapshot.exists()) {
+          setCamIP(camIPSnapshot.val()); // Set the CamIP state
+        } else {
+          Alert.alert("Error", "Camera IP not found in the database.");
+        }
       } catch (error) {
-        console.error("Error fetching user details:", error);
-        Alert.alert("Error", "An error occurred while fetching user details.");
+        console.error("Error fetching data:", error);
+        Alert.alert("Error", "An error occurred while fetching data.");
       }
     };
 
@@ -106,9 +125,19 @@ const DoorLock = () => {
     }
   };
 
+  const handleCameraView = () => {
+    if (camIP) {
+      Linking.openURL(`http://${camIP}`).catch((err) =>
+        Alert.alert("Error", "Failed to open the camera view.")
+      );
+    } else {
+      Alert.alert("Error", "Camera IP is not available.");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      <View style={styles.content}>
         <View style={styles.iconWrapper}>
           <View style={styles.outerCircle}>
             <View style={styles.iconBackground}>
@@ -133,6 +162,13 @@ const DoorLock = () => {
             <Text style={styles.buttonText}>Unlock Door</Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={styles.cameraButton}
+          onPress={handleCameraView}
+        >
+          <Text style={styles.cameraButtonText}>Camera View</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -148,6 +184,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#ffffff",
+  },
+  userDetails: {
+    marginBottom: 20,
+    alignItems: "center",
+  },
+  userDetailText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1f2937",
+  },
+  content: {
+    flex: 1, // Allow content to take up remaining space
+    justifyContent: "center",
+    alignItems: "center",
   },
   iconWrapper: {
     marginBottom: 30,
@@ -206,6 +256,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 10,
+  },
+  cameraButton: {
+    backgroundColor: "#3b82f6",
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginTop: 50,
+  },
+  cameraButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 
