@@ -9,22 +9,47 @@ import {
   Alert,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import database from "../../../firebaseConfig"; // Import the database instance
+import { ref, get } from "firebase/database"; // Import Firebase database functions
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
 
 const Login = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
-    if (email === "admin@gmail.com" && password === "1") {
+  const handleLogin = async () => {
+    if (email === "a" && password === "1") {
+      await AsyncStorage.setItem("loggedInUserId", "admin"); // Save admin ID
       navigation.navigate("AdminHome"); // Navigate to Admin pages
-    } else if (email === "test@1.com" && password === "1") {
-      navigation.navigate("UserHome"); // Navigate to User pages
-    } else {
-      Alert.alert(
-        "Invalid Credentials",
-        "Please check your email and password."
-      );
+      return;
     }
+
+    const usersRef = ref(database, "users");
+    get(usersRef)
+      .then(async (snapshot) => {
+        if (snapshot.exists()) {
+          const users = snapshot.val();
+          const userEntry = Object.entries(users).find(
+            ([id, u]) => u.email === email && u.password === password
+          );
+
+          if (userEntry) {
+            const [userId] = userEntry; // Extract user ID
+            await AsyncStorage.setItem("loggedInUserId", userId); // Save user ID
+            navigation.navigate("UserHome"); // Navigate to UserHome on success
+          } else {
+            Alert.alert(
+              "Invalid Credentials",
+              "Please check your email and password."
+            );
+          }
+        } else {
+          Alert.alert("Error", "No users found in the database.");
+        }
+      })
+      .catch((error) => {
+        Alert.alert("Error", error.message);
+      });
   };
 
   return (

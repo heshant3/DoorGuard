@@ -1,14 +1,111 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { ref, set, push, get } from "firebase/database"; // Import Firebase database functions
+import database from "../../../../firebaseConfig"; // Ensure the database is imported correctly
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
 
 const DoorLock = () => {
+  const [lockStatus, setLockStatus] = useState("Locked"); // State to track lock status
+  const [user, setUser] = useState(null); // State to store user details
+
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const loggedInUserId = await AsyncStorage.getItem("loggedInUserId");
+        if (loggedInUserId) {
+          const userRef = ref(database, `users/${loggedInUserId}`);
+          const snapshot = await get(userRef);
+          if (snapshot.exists()) {
+            const userData = snapshot.val();
+            setUser({
+              name: userData.name || "User", // Default name if not provided
+              email: userData.email,
+              userId: loggedInUserId,
+            });
+          } else {
+            Alert.alert("Error", "User data not found in the database.");
+          }
+        } else {
+          Alert.alert("Error", "User ID not found in local storage.");
+        }
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+        Alert.alert("Error", "An error occurred while fetching user details.");
+      }
+    };
+
+    fetchUserDetails();
+  }, []);
+
+  const logActivity = async (action) => {
+    if (!user) {
+      Alert.alert("Error", "User details not found.");
+      return;
+    }
+
+    // Get current timestamp in Sri Lanka time (UTC+5:30)
+    const now = new Date();
+    const sriLankaTime = new Date(now.getTime() + 5.5 * 60 * 60 * 1000); // Add 5 hours 30 minutes
+    const timestamp = sriLankaTime.toISOString(); // Convert to ISO string
+
+    const activityRef = ref(database, `activity/${user.userId}`); // Reference to user's activity node
+
+    const activityData = {
+      name: user.name,
+      email: user.email,
+      action,
+      timestamp,
+    };
+
+    try {
+      await push(activityRef, activityData); // Push activity data to the database
+    } catch (error) {
+      console.error("Error logging activity:", error);
+    }
+  };
+
+  const handleLock = () => {
+    try {
+      set(ref(database, "/Lock"), 0) // Update lock status in the database
+        .then(() => {
+          setLockStatus("Locked");
+          Alert.alert("Success", "Door is now locked.");
+          logActivity("Locked"); // Log lock activity
+        })
+        .catch((error) => {
+          Alert.alert("Error", "Failed to lock the door.");
+          console.error(error);
+        });
+    } catch (error) {
+      console.error("Unexpected error:", error);
+    }
+  };
+
+  const handleUnlock = () => {
+    try {
+      set(ref(database, "/Lock"), 1) // Update lock status in the database
+        .then(() => {
+          setLockStatus("Unlocked");
+          Alert.alert("Success", "Door is now unlocked.");
+          logActivity("Unlocked"); // Log unlock activity
+        })
+        .catch((error) => {
+          Alert.alert("Error", "Failed to unlock the door.");
+          console.error(error);
+        });
+    } catch (error) {
+      console.error("Unexpected error:", error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -19,13 +116,19 @@ const DoorLock = () => {
             </View>
           </View>
         </View>
-        <Text style={styles.statusText}>Door Locked</Text>
+        <Text style={styles.statusText}>Door {lockStatus}</Text>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={[styles.button, styles.lockButton]}>
+          <TouchableOpacity
+            style={[styles.button, styles.lockButton]}
+            onPress={handleLock}
+          >
             <Ionicons name="lock-closed-outline" size={20} color="#fff" />
             <Text style={styles.buttonText}>Lock Door</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, styles.unlockButton]}>
+          <TouchableOpacity
+            style={[styles.button, styles.unlockButton]}
+            onPress={handleUnlock}
+          >
             <Ionicons name="lock-open-outline" size={20} color="#fff" />
             <Text style={styles.buttonText}>Unlock Door</Text>
           </TouchableOpacity>

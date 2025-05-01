@@ -1,20 +1,56 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   SafeAreaView,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { CommonActions } from "@react-navigation/native"; // Import CommonActions
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
+import database from "../../../../firebaseConfig"; // Import Firebase database instance
+import { ref, get } from "firebase/database"; // Import Firebase database functions
 
 const Profile = ({ navigation }) => {
-  const user = {
-    firstName: "John",
-    lastName: "Doe",
-    email: "johndoe@example.com",
-    userId: "USER12345",
-  };
+  const [user, setUser] = useState(null); // State to store user details
+  const [loading, setLoading] = useState(true); // State to manage loading state
+
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const loggedInUserId = await AsyncStorage.getItem("loggedInUserId");
+        if (loggedInUserId === "admin") {
+          // Admin details
+          setUser({
+            name: "Admin",
+            email: "admin@admin.com",
+            userId: "12",
+          });
+        } else if (loggedInUserId) {
+          // Fetch user details from Firebase
+          const userRef = ref(database, `users/${loggedInUserId}`);
+          const snapshot = await get(userRef);
+          if (snapshot.exists()) {
+            const userData = snapshot.val();
+            setUser({
+              name: userData.name || "User", // Default name if not provided
+              email: userData.email,
+              userId: loggedInUserId,
+            });
+          } else {
+            console.error("User not found in the database.");
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+      } finally {
+        setLoading(false); // Stop loading
+      }
+    };
+
+    fetchUserDetails();
+  }, []);
 
   const handleLogout = () => {
     // Reset the navigation stack and navigate to Login
@@ -26,6 +62,14 @@ const Profile = ({ navigation }) => {
     );
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -34,14 +78,9 @@ const Profile = ({ navigation }) => {
         </View>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user.firstName[0]}
-              {user.lastName[0]}
-            </Text>
+            <Text style={styles.avatarText}>{user.name[0].toUpperCase()}</Text>
           </View>
-          <Text style={styles.name}>
-            {user.firstName} {user.lastName}
-          </Text>
+          <Text style={styles.name}>{user.name}</Text>
           <Text style={styles.email}>{user.email}</Text>
         </View>
         <View style={styles.detailsContainer}>
