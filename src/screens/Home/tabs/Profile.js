@@ -138,7 +138,9 @@ const Profile = ({ navigation }) => {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+        </View>
       </SafeAreaView>
     );
   }
@@ -193,6 +195,16 @@ const Profile = ({ navigation }) => {
               </>
             )}
           </View>
+          {!isEditing &&
+            !isChangingPassword &&
+            user.userId !== "12" && ( // Show Edit button only for non-admin users
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => setIsEditing(true)}
+              >
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+            )}
           {user.userId !== "12" &&
             !isChangingPassword && ( // Hide Security section for admin
               <View style={styles.detailsContainer}>
@@ -203,6 +215,7 @@ const Profile = ({ navigation }) => {
                 </View>
               </View>
             )}
+
           {user.userId !== "12" &&
             !isEditing &&
             !isChangingPassword && ( // Show Change Password button only for non-admin users
@@ -425,6 +438,11 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

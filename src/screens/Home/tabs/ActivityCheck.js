@@ -86,7 +86,9 @@ const ActivityCheck = () => {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+        </View>
       </SafeAreaView>
     );
   }
@@ -228,6 +230,11 @@ const styles = StyleSheet.create({
   noDataText: {
     fontSize: 16,
     color: "#6b7280",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 
