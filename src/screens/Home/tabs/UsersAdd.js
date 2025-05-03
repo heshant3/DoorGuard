@@ -14,6 +14,7 @@ import {
 import { ref, onValue, update } from "firebase/database"; // Replace get with onValue
 import database from "../../../../firebaseConfig"; // Import the database instance
 import { Ionicons } from "@expo/vector-icons"; // Import Ionicons for the close icon
+import Notification from "./Notification"; // Import Notification component
 
 const UsersAdd = () => {
   const [users, setUsers] = useState([]); // State to store users
@@ -21,6 +22,7 @@ const UsersAdd = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0)); // Initialize fade animation
   const [loading, setLoading] = useState(true); // State to manage loading state
+  const [notifications, setNotifications] = useState([]); // State for notifications
 
   useEffect(() => {
     const usersRef = ref(database, "users"); // Reference to the users node
@@ -40,6 +42,15 @@ const UsersAdd = () => {
 
     return () => unsubscribe(); // Cleanup listener on unmount
   }, []);
+
+  const triggerNotification = (message) => {
+    const newNotification = {
+      id: Date.now().toString(),
+      message,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    setNotifications([newNotification]); // Replace existing notifications with the new one
+  };
 
   const handleOpenModal = (user) => {
     setSelectedUser(user);
@@ -71,6 +82,9 @@ const UsersAdd = () => {
             user.id === userId ? { ...user, status } : user
           )
         ); // Update the local state to reflect the new status
+
+        const statusMessage = status === 1 ? "Accepted" : "Declined";
+        triggerNotification(`User ${statusMessage}`); // Trigger notification
 
         handleCloseModal(); // Close the modal after updating
       })
@@ -139,6 +153,7 @@ const UsersAdd = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Notification notifications={notifications} />
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>User Account</Text>
@@ -177,13 +192,13 @@ const UsersAdd = () => {
                 <View style={styles.buttonContainer}>
                   <TouchableOpacity
                     style={styles.acceptButton}
-                    onPress={() => handleStatusChange(selectedUser.id, 1)} // Accept action
+                    onPress={() => handleStatusChange(selectedUser.id, 1)}
                   >
                     <Text style={styles.buttonText}>Accept</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.declineButton}
-                    onPress={() => handleStatusChange(selectedUser.id, 0)} // Decline action
+                    onPress={() => handleStatusChange(selectedUser.id, 0)}
                   >
                     <Text style={styles.buttonText}>Decline</Text>
                   </TouchableOpacity>

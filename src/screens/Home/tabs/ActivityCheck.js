@@ -11,10 +11,21 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import database from "../../../../firebaseConfig"; // Import Firebase database instance
 import { ref, onValue } from "firebase/database"; // Replace get with onValue
+import Notification from "./Notification"; // Import Notification component
 
 const ActivityCheck = () => {
   const [activityData, setActivityData] = useState([]); // State to store activity data
   const [loading, setLoading] = useState(true); // State to manage loading state
+  const [notifications, setNotifications] = useState([]); // State for notifications
+
+  const triggerNotification = (message) => {
+    const newNotification = {
+      id: Date.now().toString(),
+      message,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    setNotifications([newNotification]); // Replace existing notifications with the new one
+  };
 
   useEffect(() => {
     const activityRef = ref(database, "activity"); // Reference to the activity node
@@ -36,6 +47,7 @@ const ActivityCheck = () => {
         });
 
         setActivityData(activities); // Set the fetched activity data
+        triggerNotification("New activity data loaded."); // Trigger notification
       } else {
         setActivityData([]); // Clear data if no activity exists
       }
@@ -86,6 +98,7 @@ const ActivityCheck = () => {
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <Notification notifications={notifications} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3b82f6" />
         </View>
@@ -96,6 +109,7 @@ const ActivityCheck = () => {
   if (activityData.length === 0) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <Notification notifications={notifications} />
         <View style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>User Logs</Text>
@@ -111,6 +125,7 @@ const ActivityCheck = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Notification notifications={notifications} />
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Activity Log</Text>

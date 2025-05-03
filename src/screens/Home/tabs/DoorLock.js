@@ -13,6 +13,7 @@ import database from "../../../../firebaseConfig"; // Ensure the database is imp
 import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
 import * as LocalAuthentication from "expo-local-authentication"; // Import Expo Local Authentication
 import * as Linking from "expo-linking"; // Import Linking from Expo
+import Notification from "./Notification"; // Import Notification
 
 const DoorLock = () => {
   const [lockStatus, setLockStatus] = useState("Locked"); // State to track lock status
@@ -149,9 +150,9 @@ const DoorLock = () => {
     try {
       set(ref(database, "/Lock"), 0) // Update lock status in the database
         .then(() => {
-          setLockStatus("Locked");
+          setLockStatus("Unlocked");
 
-          logActivity("Locked"); // Log lock activity
+          logActivity("Unlocked"); // Log lock activity
         })
         .catch((error) => {
           Alert.alert("Error", "Failed to lock the door.");
@@ -169,9 +170,9 @@ const DoorLock = () => {
     try {
       set(ref(database, "/Lock"), 1) // Update lock status in the database
         .then(() => {
-          setLockStatus("Unlocked");
+          setLockStatus("Locked");
 
-          logActivity("Unlocked"); // Log unlock activity
+          logActivity("Locked"); // Log unlock activity
         })
         .catch((error) => {
           Alert.alert("Error", "Failed to unlock the door.");
@@ -192,19 +193,22 @@ const DoorLock = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Notification />
       <View style={styles.content}>
         <View style={styles.iconWrapper}>
           <View style={styles.outerCircle}>
             <View style={styles.iconBackground}>
               <Ionicons
-                name={lockStatus === "Locked" ? "lock-closed" : "lock-open"} // Change icon dynamically
+                name={lockStatus === "Unlocked" ? "lock-closed" : "lock-open"} // Change icon dynamically
                 size={60}
                 color="#2563eb" // Keep the color consistent
               />
             </View>
           </View>
         </View>
-        <Text style={styles.statusText}>Door {lockStatus}</Text>
+        <Text style={styles.statusText}>
+          Door {lockStatus === "Locked" ? "Unlocked" : "Locked"}
+        </Text>
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[styles.button, styles.lockButton]}
