@@ -34,7 +34,7 @@ const Profile = ({ navigation }) => {
           // Admin details
           setUser({
             name: "Admin",
-            email: "admin@admin.com",
+            email: "Oshanvimukththi@gmail.com",
             userId: "12",
           });
         } else if (loggedInUserId) {

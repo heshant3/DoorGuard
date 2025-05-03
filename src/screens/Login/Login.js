@@ -18,7 +18,7 @@ const Login = ({ navigation }) => {
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    if (email === "a" && password === "1") {
+    if (email.toLowerCase() === "oshan@gmail.com" && password === "Admin123") {
       await AsyncStorage.setItem("loggedInUserId", "admin"); // Save admin ID
       navigation.navigate("AdminHome"); // Navigate to Admin pages
       return;
@@ -30,7 +30,9 @@ const Login = ({ navigation }) => {
         if (snapshot.exists()) {
           const users = snapshot.val();
           const userEntry = Object.entries(users).find(
-            ([id, u]) => u.email === email && u.password === password
+            ([id, u]) =>
+              u.email.toLowerCase() === email.toLowerCase() &&
+              u.password === password
           );
 
           if (userEntry) {
