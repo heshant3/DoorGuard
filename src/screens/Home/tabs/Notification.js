@@ -19,12 +19,13 @@ const Notification = () => {
     checkAdmin();
 
     if (isAdmin) {
-      let isInitial = true; // Flag to ignore the initial value
-      const lockRef = ref(database, "/Lock"); // Reference to the Lock value in the database
-      const unsubscribe = onValue(lockRef, (snapshot) => {
+      // Lock status listener
+      let isInitialLock = true;
+      const lockRef = ref(database, "/Lock");
+      const lockUnsubscribe = onValue(lockRef, (snapshot) => {
         if (snapshot.exists()) {
-          if (isInitial) {
-            isInitial = false; // Ignore the first value
+          if (isInitialLock) {
+            isInitialLock = false;
             return;
           }
 
@@ -37,12 +38,32 @@ const Notification = () => {
               : null;
 
           if (message) {
-            triggerNotification(message); // Trigger notification based on lock value
+            triggerNotification(message);
           }
         }
       });
 
-      return () => unsubscribe(); // Clean up the listener on unmount
+      // EMG sensor listener
+      let isInitialEMG = true;
+      const emgRef = ref(database, "/Object");
+      const emgUnsubscribe = onValue(emgRef, (snapshot) => {
+        if (snapshot.exists()) {
+          if (isInitialEMG) {
+            isInitialEMG = false;
+            return;
+          }
+
+          const emgValue = snapshot.val();
+          if (emgValue === 1) {
+            triggerNotification("Unauthorized person detection");
+          }
+        }
+      });
+
+      return () => {
+        lockUnsubscribe();
+        emgUnsubscribe();
+      };
     }
   }, [isAdmin]);
 
