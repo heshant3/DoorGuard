@@ -18,6 +18,34 @@ const ActivityCheck = () => {
   const [loading, setLoading] = useState(true); // State to manage loading state
   const [notifications, setNotifications] = useState([]); // State for notifications
 
+  const formatDateTime = (timestamp) => {
+    try {
+      if (!timestamp) return { date: "N/A", time: "N/A" };
+
+      // Create a Date object (UTC time)
+      const dateObj = new Date(timestamp);
+      if (isNaN(dateObj.getTime())) return { date: "N/A", time: "N/A" };
+
+      // Extract date part YYYY-MM-DD (UTC)
+      const date = dateObj.toISOString().split("T")[0]; // "2025-05-22"
+
+      // Extract time part HH:mm:ss (UTC) without milliseconds
+      const time = dateObj.toISOString().split("T")[1].split(".")[0]; // "19:16:34"
+
+      // Convert date to DD/MM/YYYY format
+      const [year, month, day] = date.split("-");
+      const formattedDate = `${day}/${month}/${year}`;
+
+      return {
+        date: formattedDate,
+        time: time,
+      };
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return { date: "N/A", time: "N/A" };
+    }
+  };
+
   const triggerNotification = (message) => {
     const newNotification = {
       id: Date.now().toString(),
@@ -28,7 +56,7 @@ const ActivityCheck = () => {
   };
 
   useEffect(() => {
-    const activityRef = ref(database, "activity"); // Reference to the activity node
+    const activityRef = ref(database, "activity");
     const unsubscribe = onValue(activityRef, (snapshot) => {
       if (snapshot.exists()) {
         const activities = [];
@@ -38,62 +66,71 @@ const ActivityCheck = () => {
         Object.keys(activityUsers).forEach((userId) => {
           const userActivities = activityUsers[userId];
           Object.keys(userActivities).forEach((activityId) => {
-            activities.push({
-              id: activityId,
-              userId,
-              ...userActivities[activityId], // Spread activity details
-            });
+            const activity = userActivities[activityId];
+            // Ensure timestamp is valid
+            if (activity.timestamp) {
+              activities.push({
+                id: activityId,
+                userId,
+                ...activity,
+                timestamp: activity.timestamp, // Ensure timestamp is included
+              });
+            }
           });
         });
 
-        setActivityData(activities); // Set the fetched activity data
-        triggerNotification("New activity data loaded."); // Trigger notification
+        // Sort activities by timestamp in descending order (newest first)
+        activities.sort(
+          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        );
+
+        setActivityData(activities);
+        triggerNotification("New activity data loaded.");
       } else {
-        setActivityData([]); // Clear data if no activity exists
+        setActivityData([]);
       }
-      setLoading(false); // Stop loading
+      setLoading(false);
     });
 
-    return () => unsubscribe(); // Cleanup listener on unmount
+    return () => unsubscribe();
   }, []);
 
-  const renderItem = ({ item }) => (
-    <View style={styles.activityItem}>
-      <View style={styles.avatarWrapper}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {item.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")}
-          </Text>
+  const renderItem = ({ item }) => {
+    const { date, time } = formatDateTime(item.timestamp);
+    return (
+      <View style={styles.activityItem}>
+        <View style={styles.avatarWrapper}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {item.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </Text>
+          </View>
+          <Ionicons
+            name={
+              item.action === "Unlocked"
+                ? "lock-open-outline"
+                : "lock-closed-outline"
+            }
+            size={14}
+            color={item.action === "Unlocked" ? "#10b981" : "#ef4444"}
+            style={styles.lockIcon}
+          />
         </View>
-        <Ionicons
-          name={
-            item.action === "Unlocked"
-              ? "lock-open-outline"
-              : "lock-closed-outline"
-          }
-          size={14}
-          color={item.action === "Unlocked" ? "#10b981" : "#ef4444"}
-          style={styles.lockIcon}
-        />
+        <View style={styles.activityDetails}>
+          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.userId}>ID: {item.userId}</Text>
+          <Text style={styles.action}>Action: {item.action}</Text>
+        </View>
+        <View style={styles.activityTime}>
+          <Text style={styles.time}>{time}</Text>
+          <Text style={styles.date}>{date}</Text>
+        </View>
       </View>
-      <View style={styles.activityDetails}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.userId}>ID: {item.userId}</Text>
-        <Text style={styles.action}>Action: {item.action}</Text>
-      </View>
-      <View style={styles.activityTime}>
-        <Text style={styles.time}>
-          {new Date(item.timestamp).toLocaleTimeString()}
-        </Text>
-        <Text style={styles.date}>
-          {new Date(item.timestamp).toLocaleDateString()}
-        </Text>
-      </View>
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (

@@ -8,7 +8,7 @@ import {
   Alert,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { ref, set, push, get } from "firebase/database"; // Import Firebase database functions
+import { ref, set, push, get, onValue } from "firebase/database"; // Added onValue import
 import database from "../../../../firebaseConfig"; // Ensure the database is imported correctly
 import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
 import * as LocalAuthentication from "expo-local-authentication"; // Import Expo Local Authentication
@@ -68,8 +68,18 @@ const DoorLock = () => {
       }
     };
 
+    // Add database listener for lock status
+    const lockRef = ref(database, "/Lock");
+    const unsubscribe = onValue(lockRef, (snapshot) => {
+      const value = snapshot.val();
+      setLockStatus(value === 1 ? "Locked" : "Unlocked");
+    });
+
     fetchUserDetails();
     fetchCamIP();
+
+    // Cleanup listener on component unmount
+    return () => unsubscribe();
   }, []);
 
   const authenticateFingerprint = async () => {
@@ -185,7 +195,7 @@ const DoorLock = () => {
 
   const handleCameraView = () => {
     if (camIP) {
-      Linking.openURL(`http://${camIP}`); // Open the camera IP in the browser
+      Linking.openURL(camIP); // Open the camera IP in the browser
     } else {
       Alert.alert("Error", "Camera IP not available.");
     }
